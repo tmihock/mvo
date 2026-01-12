@@ -1,0 +1,4 @@
+ticker, expected_return, volatility
+DFEN, .04, .12
+SPY, .01, .15
+AAPL, .07, .20
