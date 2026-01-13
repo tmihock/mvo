@@ -1,4 +1,6 @@
-ticker, expected_return, volatility
-DFEN, .04, .12
-SPY, .01, .15
-AAPL, .07, .20
+ticker, 
+BMO.TO,
+ENB.TO,
+RY.TO,
+TD.TO,
+TRP.TO

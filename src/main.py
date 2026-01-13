@@ -2,15 +2,10 @@
 #
 # Tristan Mihocko
 import csv
-import yfinance as yf
-import numpy as np
 from datetime import datetime, timedelta
-import pandas as pd
-from scipy.optimize import minimize
-from matplotlib import pyplot as plt
-from fredapi import Fred
-import mvo_calc as mvo
+from mvo_calc import max_sharpe_portfolio, expected_returns, portfolio_risk, sharpe_ratio, fred_risk_free_rate
 from typing import List, Tuple, Optional
+from plot import plot_efficient_frontier
 
 def main():
 	tickers = parse_tickers('example.csv')
@@ -18,17 +13,20 @@ def main():
 	end_date = datetime.now() # Today
 	start_date = end_date - timedelta(days=5*365) # Five years ago
  
-	optimal_portfolio = mvo.get_optimal_weights(tickers, start=start_date, end=end_date)
+	optimal_portfolio = max_sharpe_portfolio(tickers, start=start_date, end=end_date, risk_free_rate=fred_risk_free_rate())
  
+	print("Tangency Portfolio")
 	print(optimal_portfolio)
+
+	plot_efficient_frontier(tickers, start=start_date, end=end_date, points=100)
  
 	
 	
 # Print expected return, volatility, sharpe ratio from optimal weights
 def print_analytics(optimal_weights, log_returns, covariance_matrix, risk_free_rate):
-	optimal_portfolio_return = mvo.expected_returns(optimal_weights, log_returns)
-	optimal_portfolio_volatility = mvo.portfolio_risk(optimal_weights, covariance_matrix)
-	optimal_sharpe_ratio = mvo.sharpe_ratio(optimal_weights, log_returns, covariance_matrix, risk_free_rate)
+	optimal_portfolio_return = expected_returns(optimal_weights, log_returns)
+	optimal_portfolio_volatility = portfolio_risk(optimal_weights, covariance_matrix)
+	optimal_sharpe_ratio = sharpe_ratio(optimal_weights, log_returns, covariance_matrix, risk_free_rate)
 
  
 # Read csv file and return a list of tickers
