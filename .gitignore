@@ -1,6 +1,7 @@
 /.vscode
 .DS_Store
 
-src/__pycache__
+.ruff_cache
+src/__pycache__/
 
 secrets.txt
