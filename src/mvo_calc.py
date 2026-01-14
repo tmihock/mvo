@@ -5,30 +5,30 @@
 # Assumes 252 trading days in a year
 #
 # Tristan Mihocko
-import csv
 import yfinance as yf
 import numpy as np
-from datetime import datetime, timedelta
 import pandas as pd
 from scipy.optimize import minimize
-from matplotlib import pyplot as plt
 from fredapi import Fred
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
+import functools
+
+default_bounds = (0, .5)
 
 @dataclass(frozen=True)
-class OptimalPortfolio: 
+class Portfolio: 
 	"""
 	Stores details of an optimized portfolio.
 
 	Attributes:
-		tickers (List[str]): List of asset tickers
+		tickers (Tuple[str]): List of asset tickers
 		weights (np.ndarray): Portfolio weights (sum to 1)
 		exp_return (float): Expected portfolio return (annualized)
 		exp_volatility (float): Portfolio risk (annualized standard deviation)
 		sharpe_ratio (float): Portfolio Sharpe ratio
 	"""
-	tickers: List[str]
+	tickers: Tuple[str]
 	weights: np.ndarray
 	exp_return: float
 	exp_volatility: float
@@ -45,15 +45,16 @@ class OptimalPortfolio:
 		return s
 
 # -------------------------
-# Data 
+# Data/input 
 # -------------------------
 
-def download_data(tickers, start, end):
+@functools.lru_cache()
+def download_data(tickers: Tuple[str], start: str, end: str) -> pd.DataFrame:
 	"""
     Downloads historical adjusted close prices for a list of tickers.
 
     Args:
-        tickers (List[str]): Asset tickers
+        tickers (Tuple[str]): Asset tickers
         start (str): Start date (YYYY-MM-DD)
         end (str): End date (YYYY-MM-DD)
 
@@ -71,7 +72,7 @@ def calc_log_returns(prices: pd.DataFrame) -> pd.DataFrame:
 	Calculates log returns from price data.
 
 	Args:
-		prices (pd.DataFrame): Adjusted close prices
+		prices (pd.DataFrame): Historic adjusted close prices from yfinance
 
 	Returns:
 		pd.DataFrame: Daily log returns
@@ -120,7 +121,6 @@ def expected_returns(weights: np.ndarray, log_returns: pd.DataFrame) -> float:
 	"""
 	return np.sum(log_returns.mean() * weights) * 252 # Annualized expected return
     
-	
 def sharpe_ratio(weights: np.ndarray, log_returns: pd.DataFrame, cov_matrix: np.ndarray, risk_free_rate: float) -> float:
 	"""
 	Computes the portfolio Sharpe ratio.
@@ -170,7 +170,7 @@ def optimize_max_sharpe(log_returns: pd.DataFrame, cov_matrix: pd.DataFrame, ris
 	"""   
 	n = log_returns.shape[1]
 	if bounds is None:
-		bounds = [(0, 0.5) for _ in range(n)]  # default: no shorting, max 50% per asset
+		bounds = [default_bounds for _ in range(n)]  # default: no shorting, max 50% per asset
 	constraints = ({'type': 'eq', 'fun': lambda w: np.sum(w) - 1})
 	initial_weights = np.array([1/n] * n)
     
@@ -182,12 +182,12 @@ def optimize_max_sharpe(log_returns: pd.DataFrame, cov_matrix: pd.DataFrame, ris
 
 	return result.x
 
-def max_sharpe_portfolio(tickers: List[str], start: str, end: str, risk_free_rate: float) -> OptimalPortfolio:
+def max_sharpe_portfolio(tickers: Tuple[str], start: str, end: str, risk_free_rate: float) -> Portfolio:
 	"""
 	Returns the maximum Sharpe ratio portfolio for given tickers and date range.
 
 	Args:
-		tickers (List[str]): Asset tickers
+		tickers (Tuple[str]): Asset tickers
 		start (str): Start date (YYYY-MM-DD)
 		end (str): End date (YYYY-MM-DD)
 		risk_free_rate (float): Annualized risk-free rate
@@ -203,7 +203,7 @@ def max_sharpe_portfolio(tickers: List[str], start: str, end: str, risk_free_rat
 	cov_matrix = annualized_covariance(log_returns)
 	optimal_weights = optimize_max_sharpe(log_returns, cov_matrix, risk_free_rate)
     
-	return OptimalPortfolio(
+	return Portfolio(
         tickers=tickers,
         weights=optimal_weights,
         exp_return=expected_returns(optimal_weights, log_returns),
@@ -211,12 +211,12 @@ def max_sharpe_portfolio(tickers: List[str], start: str, end: str, risk_free_rat
         exp_sharpe_ratio=sharpe_ratio(optimal_weights, log_returns, cov_matrix, risk_free_rate)
     )
 
-def optimized_portfolio_from_returns(tickers: List[str], returns: float, start: str, end: str, risk_free_rate: float) -> OptimalPortfolio:
+def optimized_portfolio_from_returns(tickers: Tuple[str], returns: float, start: str, end: str, risk_free_rate: float) -> Portfolio:
 	"""
 	Returns the minimum risk portfolio for a target return.
 
 	Args:
-		tickers (List[str]): Asset tickers
+		tickers (Tuple[str]): Asset tickers
 		returns (float): Target annualized return
 		start (str): Start date (YYYY-MM-DD)
 		end (str): End date (YYYY-MM-DD)
@@ -234,7 +234,7 @@ def optimized_portfolio_from_returns(tickers: List[str], returns: float, start: 
 		{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
 		{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - returns}
 	)
-	bounds = [(0, 0.1) for _ in tickers]
+	bounds = [default_bounds for _ in tickers]
 	initial_weights = np.array([1 / len(tickers)] * len(tickers))
 	
 	result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method='SLSQP', bounds=bounds, constraints=constraints)
@@ -242,7 +242,7 @@ def optimized_portfolio_from_returns(tickers: List[str], returns: float, start: 
 		raise ValueError("Optimization failed for target return.")
 
 	weights = result.x
-	return OptimalPortfolio(
+	return Portfolio(
 		tickers=tickers,
 		weights=weights,
  	   exp_return=expected_returns(weights, log_returns),
@@ -259,7 +259,7 @@ def efficient_frontier(tickers, start, end, points=50):
 	Computes the efficient frontier (minimum risk portfolios for range of target returns).
 
 	Args:
-		tickers (List[str]): Asset tickers
+		tickers (Tuple[str]): Asset tickers
 		start (str): Start date (YYYY-MM-DD)
 		end (str): End date (YYYY-MM-DD)
 		points (int): Number of portfolios to generate along frontier
@@ -289,7 +289,7 @@ def efficient_frontier(tickers, start, end, points=50):
 			{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
 			{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - target}
 		)
-		bounds = [(0, 1) for _ in tickers]
+		bounds = [default_bounds for _ in tickers]
 		initial_weights = np.array([1 / len(tickers)] * len(tickers))
 		
 		result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method='SLSQP', bounds=bounds, constraints=constraints)
@@ -306,6 +306,7 @@ def efficient_frontier(tickers, start, end, points=50):
 # Risk-free rate
 # -------------------------
 
+@functools.lru_cache()
 def fred_risk_free_rate():
 	"""
 	Fetches the latest 10-year Treasury yield from FRED as the risk-free rate.
@@ -316,5 +317,4 @@ def fred_risk_free_rate():
 	fred = Fred(api_key='cfedb04650930f3f51d12e1c0f11e5e0')
 	ten_year_treasury_rate = fred.get_series_latest_release('DGS10') / 100 # As percentage
 
-	return 0.0463
-	# return ten_year_treasury_rate.iloc[-1] 
+	return ten_year_treasury_rate.iloc[-1] 
