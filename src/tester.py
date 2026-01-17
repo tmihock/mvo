@@ -221,10 +221,11 @@ class TesterWindow(QWidget):
 		self.portfolio_data = PortfolioData(self.tickers, self.start_date, self.end_date)
 
 	def update_main_plot(self):
+		bounds = (0, self.bounds_max)
 		self.main_fig.clf()
 		ax = self.main_fig.add_subplot(111)
-		self.current_portfolio = Portfolio.max_sharpe_portfolio(self.portfolio_data, (0, self.bounds_max)) # Set new portfolio
-		self.efficient_artists = plot_efficient_frontier(ax, self.tickers, self.start_date, self.end_date)
+		self.current_portfolio = Portfolio.max_sharpe_portfolio(self.portfolio_data, bounds) # Set new portfolio
+		self.efficient_artists = plot_efficient_frontier(ax, self.portfolio_data, bounds)
 		self.toggle_artists()
 
 	def update_pie_chart(self):

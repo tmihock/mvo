@@ -55,7 +55,7 @@ class Portfolio:
 		Returns:
 			float: Portfolio Sharpe ratio
 		"""
-		return (self.expected_returns() - self.data.risk_free_rate) / self.expected_volatility()
+		return (self.expected_return - self.data.risk_free_rate) / self.expected_volatility
 
 	@classmethod
 	def max_sharpe_portfolio(cls, data: PortfolioData, bounds: Tuple[float, float] = None):
@@ -82,6 +82,7 @@ class Portfolio:
 
 	@classmethod
 	def from_target_return(cls, data: PortfolioData, target_return: float, bounds: Tuple[float, float]):
+		n = data.log_returns.shape[1]
 		bounds = bounds or default_bounds # default: no shorting, max 50% per asset
 		annualized_covariance = data.annualized_covariance
 		initial_weights = np.array([1 / len(tickers)] * len(tickers))

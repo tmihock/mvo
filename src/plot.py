@@ -1,11 +1,11 @@
 # plot.py
-from mvo_calc import efficient_frontier, max_sharpe_portfolio, fred_risk_free_rate
 import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons
 from matplotlib.collections import LineCollection
 import numpy as np
 from Portfolio import Portfolio, PortfolioData
-
+from typing import Tuple
+from scipy.optimize import minimize
 
 dot_size = 50
 
@@ -31,13 +31,24 @@ def plot_pie_chart(ax, tickers, weights):
 	# plt.show()
 
 
-def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True, 
+def plot_efficient_frontier(ax, data: PortfolioData, bounds: Tuple[float, float], *, show_cml=True, 
 							show_gmv=True, show_tangency=True, show_rf=True, points=50):
-	risk_free_rate = fred_risk_free_rate()
-	risks, returns, weights, sharpe_ratios = efficient_frontier(tickers, start, end, points=points)
+	frontier_portfolios = efficient_frontier(data, bounds, points=points)
 
-	data = PortfolioData(tickers, start, end)
-	max_sharpe = Portfolio.max_sharpe_portfolio(data)
+	risks = []
+	returns = []
+	sharpe_ratios = []
+
+	for p in frontier_portfolios:
+		risks.append(p.expected_volatility)
+		returns.append(p.expected_return)
+		sharpe_ratios.append(p.expected_sharpe_ratio)
+	
+	risks = np.array(risks)
+	returns = np.array(returns)
+	sharpe_ratios = np.array(sharpe_ratios)
+
+	max_sharpe = Portfolio.max_sharpe_portfolio(data, bounds)
 	
 	# Colored efficient frontier based on Sharpe ratio
 
@@ -83,6 +94,8 @@ def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True,
 
 	# Capital Market Line
 	if show_cml:
+		risk_free_rate = data.risk_free_rate
+
 		sigma_cml = np.linspace(0, max(risks), 100)
 		return_cml = risk_free_rate + sigma_cml * (max_sharpe.expected_return - risk_free_rate) / max_sharpe.expected_volatility
 		artists['CML'] = ax.plot(sigma_cml, return_cml, 'm--', label='Capital Market Line')[0]
@@ -92,7 +105,62 @@ def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True,
 	ax.set_xlabel('Portfolio Risk (σ)')
 	ax.set_ylabel('Expected Portfolio Return (μ)')
 	ax.set_title('Efficient Frontier')
+
 	ax.grid(True)
 	ax.legend()
 	
 	return artists
+
+
+def efficient_frontier(data: PortfolioData, bounds: Tuple[float, float], points=50) -> np.ndarray[Portfolio]:
+	"""
+	Computes the efficient frontier (minimum risk portfolios for range of target returns).
+
+	Args:
+		tickers (Tuple[str]): Asset tickers
+		start (str): Start date (YYYY-MM-DD)
+		end (str): End date (YYYY-MM-DD)
+		points (int): Number of portfolios to generate along frontier
+
+	Returns:
+		Tuple:
+			- np.ndarray: Portfolio risks (σ) along frontier
+			- np.ndarray: Portfolio expected returns (μ) along frontier
+			- List[np.ndarray]: Portfolio weights for each frontier point
+			- np.ndarray: Sharpe ratios for each frontier point
+	"""
+	tickers = data.tickers
+
+	prices = data.prices
+	log_returns = data.log_returns
+	annualized_covariance = data.annualized_covariance
+	mean_returns = log_returns.mean() * 252
+	risk_free_rate = data.risk_free_rate
+
+	n = log_returns.shape[1]
+
+	frontier_returns = []
+	frontier_risks = []
+	frontier_weights = []
+	sharpe_ratios = []
+
+	frontier_portfolios = []
+
+	target_returns = np.linspace(mean_returns.min(), mean_returns.max(), points)
+    
+	for target in target_returns:
+		constraints = (
+			{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
+			{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - target}
+		)
+		initial_weights = np.array([1 / len(tickers)] * len(tickers))
+
+		def risk(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
+			return np.sqrt(weights.T @ cov_matrix @ weights)
+		
+		result = minimize(risk, initial_weights, args=(annualized_covariance,), method='SLSQP', bounds=[bounds]*n, constraints=constraints)
+		if result.success:
+			weights = result.x
+			frontier_portfolios.append(Portfolio(data, weights))
+
+	return np.array(frontier_portfolios)
