@@ -14,17 +14,22 @@ from mvo_calc import max_sharpe_portfolio, fred_risk_free_rate
 TODO:
 
 * Render button
+ - Input risk free rate (option to use federal reserve rate)
+
  - Bounds for each ticker (ticker options?)
  - Bounds impl (on re-render)
  - set risk-free rate (on re-render)
 
 * Data 
+ - Hover to see sharpe (exact number)
+ - Option to show points for 100% in a stock
+ - Click on point on line to see weights
+ - export weights to csv (ticker, weight)
+
+* Format
  - portfolio weights box longer (down), bounds smaller
  - Maybe wrap weights to be two columned?
  - Checkboxes box on right 
-
- - Click on point on line to see weights
- - export weights to csv (ticker, weight)
 
 """
 
@@ -51,14 +56,12 @@ class PortfolioWindow(QWidget):
 		self.cml_cb = QCheckBox("Capital Market Line")
 		self.gmv_cb = QCheckBox("Global Minimum Variance")
 		self.tangency_cb = QCheckBox("Tangency Portfolio")
-		self.rf_cb = QCheckBox("Risk-Free Rate Line")
-		for cb in [self.cml_cb, self.gmv_cb, self.tangency_cb, self.rf_cb]:
+		for cb in [self.cml_cb, self.gmv_cb, self.tangency_cb]:
 			cb.setChecked(True)
 			cb.stateChanged.connect(self.toggle_artists)
 		cb_layout.addWidget(self.cml_cb)
 		cb_layout.addWidget(self.gmv_cb)
 		cb_layout.addWidget(self.tangency_cb)
-		cb_layout.addWidget(self.rf_cb)
 		cb_group.setLayout(cb_layout)
 		left_layout.addWidget(cb_group)
 
@@ -141,7 +144,6 @@ class PortfolioWindow(QWidget):
 		self.efficient_artists['CML'].set_visible(self.cml_cb.isChecked())
 		self.efficient_artists['GMV'].set_visible(self.gmv_cb.isChecked())
 		self.efficient_artists['Tangency'].set_visible(self.tangency_cb.isChecked())
-		self.efficient_artists['RF'].set_visible(self.rf_cb.isChecked())
 		self.main_canvas.draw_idle()
 
 	def update_pie_chart(self):

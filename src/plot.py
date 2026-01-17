@@ -5,9 +5,17 @@ from matplotlib.widgets import CheckButtons
 from matplotlib.collections import LineCollection
 import numpy as np
 
+
+dot_size = 50
+
+curve_cmap = 'rainbow' # viridis
+curve_alpha = 0.8
+
+
 # -------------------------
 # Plot
 # -------------------------
+
 small_threshold = 1e-6 # Threshold to consider weight as zero due to floating point errors
 
 def plot_pie_chart(ax, tickers, weights):
@@ -36,8 +44,8 @@ def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True,
 
 	lc = LineCollection(
 		segments,
-		cmap='viridis',
-		alpha=0.5,
+		cmap=curve_cmap, # viridis
+		alpha=curve_alpha,
 		norm=plt.Normalize(sharpe_ratios.min(), sharpe_ratios.max()*1.15),
 		linewidth=2
 	)
@@ -60,31 +68,22 @@ def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True,
 	if show_tangency:
 		artists['Tangency'] = ax.scatter(
 			max_sharpe.exp_volatility, max_sharpe.exp_return,
-			c='r', marker='o', s=100, label='Max Sharpe'
+			c='r', marker='o', s=dot_size, label='Tangency Point', zorder=3
 		)
-
-	# Risk-free rate line
-	if show_rf:
-		artists['RF'] = ax.plot(
-		[0, max(risks)], 
-		[risk_free_rate, max(returns)], 
-		'g--', label='Risk-Free Rate'
-	)[0]
-		
-
-	# Capital Market Line
-	if show_cml:
-		sigma_cml = np.linspace(0, max(risks), 100)
-		return_cml = risk_free_rate + sigma_cml * (max_sharpe.exp_return - risk_free_rate) / max_sharpe.exp_volatility
-		artists['CML'] = ax.plot(sigma_cml, return_cml, 'm--', label='CML')[0]
 
 	# Global Minimum Variance Point
 	if show_gmv:
 		min_risk_idx = np.argmin(risks)
 		artists['GMV'] = ax.scatter(
 			risks[min_risk_idx], returns[min_risk_idx],
-			c='orange', marker='o', s=100, label='GMV'
+			c='orange', marker='o', s=dot_size, label='Global Minimum Variance', zorder=3
 		)
+
+	# Capital Market Line
+	if show_cml:
+		sigma_cml = np.linspace(0, max(risks), 100)
+		return_cml = risk_free_rate + sigma_cml * (max_sharpe.exp_return - risk_free_rate) / max_sharpe.exp_volatility
+		artists['CML'] = ax.plot(sigma_cml, return_cml, 'm--', label='Capital Market Line')[0]
 
 	# Omit Risk-Free Rate Line Toggle
 
