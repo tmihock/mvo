@@ -39,7 +39,7 @@ class Portfolio:
 		Returns:
 			float: Portfolio volatility (annualized)
 		"""
-		return np.sqrt(self.weights.T @ self.data.cov_matrix @ self.weights)
+		return np.sqrt(self.weights.T @ self.data.annualized_covariance @ self.weights)
 
 	@property
 	def expected_sharpe_ratio(self):

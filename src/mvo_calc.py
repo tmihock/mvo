@@ -16,6 +16,59 @@ import functools
 
 default_bounds = (0, .5)
 
+# TODO:
+# Refactor this so it uses portfolio classes
+
+def efficient_frontier(tickers, start, end, points=50):
+	"""
+	Computes the efficient frontier (minimum risk portfolios for range of target returns).
+
+	Args:
+		tickers (Tuple[str]): Asset tickers
+		start (str): Start date (YYYY-MM-DD)
+		end (str): End date (YYYY-MM-DD)
+		points (int): Number of portfolios to generate along frontier
+
+	Returns:
+		Tuple:
+			- np.ndarray: Portfolio risks (σ) along frontier
+			- np.ndarray: Portfolio expected returns (μ) along frontier
+			- List[np.ndarray]: Portfolio weights for each frontier point
+			- np.ndarray: Sharpe ratios for each frontier point
+	"""
+	prices = download_data(tickers, start, end)
+	log_returns = calc_log_returns(prices)
+	cov_matrix = annualized_covariance(log_returns)
+	mean_returns = log_returns.mean() * 252
+	risk_free_rate = fred_risk_free_rate()
+
+	frontier_returns = []
+	frontier_risks = []
+	frontier_weights = []
+	sharpe_ratios = []
+
+	target_returns = np.linspace(mean_returns.min(), mean_returns.max(), points)
+    
+	for target in target_returns:
+		constraints = (
+			{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
+			{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - target}
+		)
+		bounds = [default_bounds for _ in tickers]
+		initial_weights = np.array([1 / len(tickers)] * len(tickers))
+		
+		result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method='SLSQP', bounds=bounds, constraints=constraints)
+		if result.success:
+			w = result.x
+			frontier_weights.append(w)
+			frontier_returns.append(np.sum(w * mean_returns))
+			frontier_risks.append(np.sqrt(w.T @ cov_matrix @ w))
+			sharpe_ratios.append(sharpe_ratio(w, log_returns, cov_matrix, risk_free_rate))
+
+	return np.array(frontier_risks), np.array(frontier_returns), frontier_weights, np.array(sharpe_ratios)
+
+
+
 @dataclass(frozen=True)
 class Portfolio: 
 	"""
@@ -253,54 +306,6 @@ def optimized_portfolio_from_returns(tickers: Tuple[str], returns: float, start:
 # -------------------------
 # Efficient frontier
 # -------------------------
-
-def efficient_frontier(tickers, start, end, points=50):
-	"""
-	Computes the efficient frontier (minimum risk portfolios for range of target returns).
-
-	Args:
-		tickers (Tuple[str]): Asset tickers
-		start (str): Start date (YYYY-MM-DD)
-		end (str): End date (YYYY-MM-DD)
-		points (int): Number of portfolios to generate along frontier
-
-	Returns:
-		Tuple:
-			- np.ndarray: Portfolio risks (σ) along frontier
-			- np.ndarray: Portfolio expected returns (μ) along frontier
-			- List[np.ndarray]: Portfolio weights for each frontier point
-			- np.ndarray: Sharpe ratios for each frontier point
-	"""
-	prices = download_data(tickers, start, end)
-	log_returns = calc_log_returns(prices)
-	cov_matrix = annualized_covariance(log_returns)
-	mean_returns = log_returns.mean() * 252
-	risk_free_rate = fred_risk_free_rate()
-
-	frontier_returns = []
-	frontier_risks = []
-	frontier_weights = []
-	sharpe_ratios = []
-
-	target_returns = np.linspace(mean_returns.min(), mean_returns.max(), points)
-    
-	for target in target_returns:
-		constraints = (
-			{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
-			{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - target}
-		)
-		bounds = [default_bounds for _ in tickers]
-		initial_weights = np.array([1 / len(tickers)] * len(tickers))
-		
-		result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method='SLSQP', bounds=bounds, constraints=constraints)
-		if result.success:
-			w = result.x
-			frontier_weights.append(w)
-			frontier_returns.append(np.sum(w * mean_returns))
-			frontier_risks.append(np.sqrt(w.T @ cov_matrix @ w))
-			sharpe_ratios.append(sharpe_ratio(w, log_returns, cov_matrix, risk_free_rate))
-
-	return np.array(frontier_risks), np.array(frontier_returns), frontier_weights, np.array(sharpe_ratios)
 
 # -------------------------
 # Risk-free rate

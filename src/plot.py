@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons
 from matplotlib.collections import LineCollection
 import numpy as np
+from Portfolio import Portfolio, PortfolioData
 
 
 dot_size = 50
@@ -35,7 +36,8 @@ def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True,
 	risk_free_rate = fred_risk_free_rate()
 	risks, returns, weights, sharpe_ratios = efficient_frontier(tickers, start, end, points=points)
 
-	max_sharpe = max_sharpe_portfolio(tickers, start, end, risk_free_rate)
+	data = PortfolioData(tickers, start, end)
+	max_sharpe = Portfolio.max_sharpe_portfolio(data)
 	
 	# Colored efficient frontier based on Sharpe ratio
 
@@ -67,7 +69,7 @@ def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True,
 	# Tangency Portfolio
 	if show_tangency:
 		artists['Tangency'] = ax.scatter(
-			max_sharpe.exp_volatility, max_sharpe.exp_return,
+			max_sharpe.expected_volatility, max_sharpe.expected_return,
 			c='r', marker='o', s=dot_size, label='Tangency Point', zorder=3
 		)
 
@@ -82,7 +84,7 @@ def plot_efficient_frontier(ax, tickers, start=None, end=None, *, show_cml=True,
 	# Capital Market Line
 	if show_cml:
 		sigma_cml = np.linspace(0, max(risks), 100)
-		return_cml = risk_free_rate + sigma_cml * (max_sharpe.exp_return - risk_free_rate) / max_sharpe.exp_volatility
+		return_cml = risk_free_rate + sigma_cml * (max_sharpe.expected_return - risk_free_rate) / max_sharpe.expected_volatility
 		artists['CML'] = ax.plot(sigma_cml, return_cml, 'm--', label='Capital Market Line')[0]
 
 	# Omit Risk-Free Rate Line Toggle
