@@ -20,5 +20,5 @@ def fetch_data(tickers: Tuple[str], start: str, end: str) -> pd.DataFrame:
 	prices = pd.DataFrame()
 	for ticker in tickers:
 		data = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
-		prices[ticker] = data['Adj Close']
+		prices[ticker] = data["Adj Close"]
 	return prices

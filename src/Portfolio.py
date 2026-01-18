@@ -61,9 +61,9 @@ class Portfolio:
 	def max_sharpe_portfolio(cls, data: PortfolioData, bounds: Tuple[float, float] = None):
 		n = data.log_returns.shape[1]
 		bounds = bounds or default_bounds # default: no shorting, max 50% per asset
-		initial_weights = np.array([1/n] * n) # Doesn't change output
+		initial_weights = np.array([1/n] * n) # Doesn"t change output
 
-		constraints = ({'type': 'eq', 'fun': lambda w: np.sum(w) - 1})
+		constraints = ({"type": "eq", "fun": lambda w: np.sum(w) - 1})
 		
 		def neg_sharpe(weights: np.ndarray, log_returns: pd.DataFrame, cov_matrix: np.ndarray, risk_free_rate: float) -> float:
 			exp_returns = np.sum(log_returns.mean() * weights) * 252
@@ -72,11 +72,31 @@ class Portfolio:
 
 		result = minimize(neg_sharpe, initial_weights, args=(
 							data.log_returns, data.annualized_covariance, data.risk_free_rate),
-							method='SLSQP', bounds=[bounds]*n, constraints=constraints
+							method="SLSQP", bounds=[bounds]*n, constraints=constraints
 						)
 
 		if not result.success:
 			raise ValueError("Optimization failed to find maximum Sharpe ratio portfolio.")
+
+		return cls(data, result.x)
+
+	@classmethod
+	def min_variance_portfolio(cls, data: PortfolioData, bounds: Tuple[float, float] = None):
+		n = data.log_returns.shape[1]
+		bounds = bounds or default_bounds # default: no shorting, max 50% per asset
+		initial_weights = np.array([1/n] * n) # Doesn"t change output
+
+		constraints = ({"type": "eq", "fun": lambda w: np.sum(w) - 1})
+		
+		def risk(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
+			return np.sqrt(weights.T @ cov_matrix @ weights)
+
+		result = minimize(risk, initial_weights, args=(data.annualized_covariance,),
+						 	method="SLSQP", bounds=[bounds]*n, constraints=constraints
+						)
+
+		if not result.success:
+			raise ValueError("Optimization failed to find minimum variance portfolio.")
 
 		return cls(data, result.x)
 
@@ -88,15 +108,15 @@ class Portfolio:
 		initial_weights = np.array([1 / len(tickers)] * len(tickers))
 
 		constraints = (
-			{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
-			{'type': 'eq', 'fun': lambda w: np.sum(w * data.mean_returns) - target_return}
+			{"type": "eq", "fun": lambda w: np.sum(w) - 1},
+			{"type": "eq", "fun": lambda w: np.sum(w * data.mean_returns) - target_return}
 		)
 		def risk(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
 			return np.sqrt(weights.T @ cov_matrix @ weights)
 
 		# Minimize risk (volatility) with target return
 		result = minimize(risk, initial_weights, args=(annualized_covariance),
-						 	method='SLSQP', bounds=[bounds]*n, constraints=constraints
+						 	method="SLSQP", bounds=[bounds]*n, constraints=constraints
 						)
 
 		if not result.success:

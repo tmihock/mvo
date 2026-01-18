@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 
 dot_size = 50
 
-curve_cmap = 'rainbow' # viridis
+curve_cmap = "rainbow" # viridis
 curve_alpha = 0.8
 
 
@@ -25,9 +25,9 @@ def plot_pie_chart(ax, tickers, weights):
 	filtered_weights = [w for w in weights if w > small_threshold]
 
 	ax.clear()
-	ax.pie(filtered_weights, labels=filtered_tickers, autopct='%.2f%%', textprops={'fontsize':8}, startangle=140)
-	ax.set_title('Portfolio Allocation')
-	ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+	ax.pie(filtered_weights, labels=filtered_tickers, autopct="%.2f%%", textprops={"fontsize":8}, startangle=140)
+	ax.set_title("Portfolio Allocation")
+	ax.axis("equal")  # Equal aspect ratio ensures that pie is drawn as a circle.
 	# plt.show()
 
 
@@ -48,6 +48,11 @@ def plot_efficient_frontier(ax, data: PortfolioData, bounds: Tuple[float, float]
 	returns = np.array(returns)
 	sharpe_ratios = np.array(sharpe_ratios)
 
+	ax.frontier_risks = risks
+	ax.frontier_returns = returns
+	ax.frontier_portfolios = frontier_portfolios
+
+
 	max_sharpe = Portfolio.max_sharpe_portfolio(data, bounds)
 	
 	# Colored efficient frontier based on Sharpe ratio
@@ -65,7 +70,7 @@ def plot_efficient_frontier(ax, data: PortfolioData, bounds: Tuple[float, float]
 	lc.set_array(sharpe_ratios)            # set color per segment
 	ax.add_collection(lc)
 
-	color_bar = ax.figure.colorbar(lc, ax=ax, label='Sharpe Ratio')
+	color_bar = ax.figure.colorbar(lc, ax=ax, label="Sharpe Ratio")
 
 	# Hover tooltips for Sharpe ratios
 
@@ -79,17 +84,17 @@ def plot_efficient_frontier(ax, data: PortfolioData, bounds: Tuple[float, float]
 
 	# Tangency Portfolio
 	if show_tangency:
-		artists['Tangency'] = ax.scatter(
+		artists["Tangency"] = ax.scatter(
 			max_sharpe.expected_volatility, max_sharpe.expected_return,
-			c='r', marker='o', s=dot_size, label='Tangency Point', zorder=3
+			c="r", marker="o", s=dot_size, label="Tangency Point", zorder=3, picker=True
 		)
 
 	# Global Minimum Variance Point
 	if show_gmv:
 		min_risk_idx = np.argmin(risks)
-		artists['GMV'] = ax.scatter(
+		artists["GMV"] = ax.scatter(
 			risks[min_risk_idx], returns[min_risk_idx],
-			c='orange', marker='o', s=dot_size, label='Global Minimum Variance', zorder=3
+			c="orange", marker="o", s=dot_size, label="Global Minimum Variance", zorder=3, picker=True
 		)
 
 	# Capital Market Line
@@ -98,13 +103,13 @@ def plot_efficient_frontier(ax, data: PortfolioData, bounds: Tuple[float, float]
 
 		sigma_cml = np.linspace(0, max(risks), 100)
 		return_cml = risk_free_rate + sigma_cml * (max_sharpe.expected_return - risk_free_rate) / max_sharpe.expected_volatility
-		artists['CML'] = ax.plot(sigma_cml, return_cml, 'm--', label='Capital Market Line')[0]
+		artists["CML"] = ax.plot(sigma_cml, return_cml, "m--", label="Capital Market Line")[0]
 
 	# Omit Risk-Free Rate Line Toggle
 
-	ax.set_xlabel('Portfolio Risk (σ)')
-	ax.set_ylabel('Expected Portfolio Return (μ)')
-	ax.set_title('Efficient Frontier')
+	ax.set_xlabel("Portfolio Risk (σ)")
+	ax.set_ylabel("Expected Portfolio Return (μ)")
+	ax.set_title("Efficient Frontier")
 
 	ax.grid(True)
 	ax.legend()
@@ -150,15 +155,15 @@ def efficient_frontier(data: PortfolioData, bounds: Tuple[float, float], points=
     
 	for target in target_returns:
 		constraints = (
-			{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
-			{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - target}
+			{"type": "eq", "fun": lambda w: np.sum(w) - 1},
+			{"type": "eq", "fun": lambda w: np.sum(w * mean_returns) - target}
 		)
 		initial_weights = np.array([1 / len(tickers)] * len(tickers))
 
 		def risk(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
 			return np.sqrt(weights.T @ cov_matrix @ weights)
 		
-		result = minimize(risk, initial_weights, args=(annualized_covariance,), method='SLSQP', bounds=[bounds]*n, constraints=constraints)
+		result = minimize(risk, initial_weights, args=(annualized_covariance,), method="SLSQP", bounds=[bounds]*n, constraints=constraints)
 		if result.success:
 			weights = result.x
 			frontier_portfolios.append(Portfolio(data, weights))

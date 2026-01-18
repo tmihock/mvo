@@ -51,13 +51,13 @@ def efficient_frontier(tickers, start, end, points=50):
     
 	for target in target_returns:
 		constraints = (
-			{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
-			{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - target}
+			{"type": "eq", "fun": lambda w: np.sum(w) - 1},
+			{"type": "eq", "fun": lambda w: np.sum(w * mean_returns) - target}
 		)
 		bounds = [default_bounds for _ in tickers]
 		initial_weights = np.array([1 / len(tickers)] * len(tickers))
 		
-		result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method='SLSQP', bounds=bounds, constraints=constraints)
+		result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method="SLSQP", bounds=bounds, constraints=constraints)
 		if result.success:
 			w = result.x
 			frontier_weights.append(w)
@@ -117,7 +117,7 @@ def download_data(tickers: Tuple[str], start: str, end: str) -> pd.DataFrame:
 	prices = pd.DataFrame()
 	for ticker in tickers:
 		data = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
-		prices[ticker] = data['Adj Close']
+		prices[ticker] = data["Adj Close"]
 	return prices
 
 def calc_log_returns(prices: pd.DataFrame) -> pd.DataFrame:
@@ -224,11 +224,11 @@ def optimize_max_sharpe(log_returns: pd.DataFrame, cov_matrix: pd.DataFrame, ris
 	n = log_returns.shape[1]
 	if bounds is None:
 		bounds = [default_bounds for _ in range(n)]  # default: no shorting, max 50% per asset
-	constraints = ({'type': 'eq', 'fun': lambda w: np.sum(w) - 1})
+	constraints = ({"type": "eq", "fun": lambda w: np.sum(w) - 1})
 	initial_weights = np.array([1/n] * n)
     
 	result = minimize(neg_sharpe_ratio, initial_weights, args=(log_returns, cov_matrix, risk_free_rate),
-								 method='SLSQP', bounds=bounds, constraints=constraints)
+								 method="SLSQP", bounds=bounds, constraints=constraints)
 
 	if not result.success:
 		raise ValueError("Optimization failed to find maximum Sharpe ratio portfolio.")
@@ -284,13 +284,13 @@ def optimized_portfolio_from_returns(tickers: Tuple[str], returns: float, start:
 	mean_returns = log_returns.mean() * 252
 
 	constraints = (
-		{'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
-		{'type': 'eq', 'fun': lambda w: np.sum(w * mean_returns) - returns}
+		{"type": "eq", "fun": lambda w: np.sum(w) - 1},
+		{"type": "eq", "fun": lambda w: np.sum(w * mean_returns) - returns}
 	)
 	bounds = [default_bounds for _ in tickers]
 	initial_weights = np.array([1 / len(tickers)] * len(tickers))
 	
-	result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method='SLSQP', bounds=bounds, constraints=constraints)
+	result = minimize(portfolio_risk, initial_weights, args=(cov_matrix,), method="SLSQP", bounds=bounds, constraints=constraints)
 	if not result.success:
 		raise ValueError("Optimization failed for target return.")
 
@@ -319,7 +319,7 @@ def fred_risk_free_rate():
 	Returns:
 		float: Annualized risk-free rate (decimal)
 	"""
-	fred = Fred(api_key='cfedb04650930f3f51d12e1c0f11e5e0')
-	ten_year_treasury_rate = fred.get_series_latest_release('DGS10') / 100 # As percentage
+	fred = Fred(api_key="cfedb04650930f3f51d12e1c0f11e5e0")
+	ten_year_treasury_rate = fred.get_series_latest_release("DGS10") / 100 # As percentage
 
 	return ten_year_treasury_rate.iloc[-1] 

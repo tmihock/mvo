@@ -40,7 +40,7 @@ def fred_risk_free_rate():
 	Returns:
 		float: Annualized risk-free rate (decimal)
 	"""
-	fred = Fred(api_key='cfedb04650930f3f51d12e1c0f11e5e0')
-	ten_year_treasury_rate = fred.get_series_latest_release('DGS10') / 100 # As percentage
+	fred = Fred(api_key="cfedb04650930f3f51d12e1c0f11e5e0")
+	ten_year_treasury_rate = fred.get_series_latest_release("DGS10") / 100 # As percentage
 
 	return ten_year_treasury_rate.iloc[-1] 
