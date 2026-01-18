@@ -3,20 +3,16 @@
 # Tristan Mihocko
 import sys
 from app import PortfolioWindow
-from datetime import datetime, timedelta
 from PyQt6.QtWidgets import QApplication
 from parse_csv import parse_tickers
-from app import PortfolioWindow
-from mvo_calc import fred_risk_free_rate
+
+file_path = "example.csv"
 
 def main():
-	tickers = parse_tickers("example.csv")
+	tickers = parse_tickers(file_path)
 
-	end_date = datetime.now() # Today
-	start_date = end_date - timedelta(days=10*365) # Five years ago
-	
 	app = QApplication(sys.argv)
-	window = PortfolioWindow(tickers, start_date, end_date)
+	window = PortfolioWindow(tickers)
 	window.show()
 	sys.exit(app.exec())
 	

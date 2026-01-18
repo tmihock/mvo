@@ -1,6 +1,5 @@
 # plot.py
 import matplotlib.pyplot as plt
-from matplotlib.widgets import CheckButtons
 from matplotlib.collections import LineCollection
 import numpy as np
 from Portfolio import Portfolio, PortfolioData
@@ -136,18 +135,11 @@ def efficient_frontier(data: PortfolioData, bounds: Tuple[float, float], points=
 	"""
 	tickers = data.tickers
 
-	prices = data.prices
 	log_returns = data.log_returns
 	annualized_covariance = data.annualized_covariance
 	mean_returns = log_returns.mean() * 252
-	risk_free_rate = data.risk_free_rate
 
 	n = log_returns.shape[1]
-
-	frontier_returns = []
-	frontier_risks = []
-	frontier_weights = []
-	sharpe_ratios = []
 
 	frontier_portfolios = []
 

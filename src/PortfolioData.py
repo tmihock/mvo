@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import yfinance as yf
 from functools import cached_property, lru_cache
 from fetch_data import fetch_data
 from fredapi import Fred

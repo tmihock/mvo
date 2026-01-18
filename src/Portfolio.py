@@ -1,9 +1,7 @@
-import yfinance as yf
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
-from typing import Tuple, Optional, List
-from fredapi import Fred
+from typing import Tuple, 
 from PortfolioData import PortfolioData
 
 default_bounds = (0, 1)
@@ -105,7 +103,7 @@ class Portfolio:
 		n = data.log_returns.shape[1]
 		bounds = bounds or default_bounds # default: no shorting, max 50% per asset
 		annualized_covariance = data.annualized_covariance
-		initial_weights = np.array([1 / len(tickers)] * len(tickers))
+		initial_weights = np.array([1 / len(data.tickers)] * len(data.tickers))
 
 		constraints = (
 			{"type": "eq", "fun": lambda w: np.sum(w) - 1},

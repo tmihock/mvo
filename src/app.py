@@ -1,25 +1,26 @@
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QCheckBox,
+    QWidget, QVBoxLayout, QHBoxLayout, QCheckBox,
     QLabel, QListWidget, QSlider, QGroupBox, QListWidgetItem,
 	QDateEdit, QFormLayout, QPushButton, QLineEdit, QSpinBox
 )
-from datetime import datetime
 from Portfolio import Portfolio
 from PortfolioData import PortfolioData
 from PyQt6.QtCore import Qt, QDate
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from plot import plot_pie_chart, plot_efficient_frontier, small_threshold
+from datetime import datetime, timedelta
 
 class PortfolioWindow(QWidget):
-	def __init__(self, tickers, start, end):
+	def __init__(self, tickers):
 		super().__init__()
 		self.tickers = tickers
-		self.start_date = start
-		self.end_date = end
+
+		self.end_date = datetime.now() # Today
+		self.start_date = self.end_date - timedelta(days=10*365) # Five years ago
 		self.points = 50
 
-		self.portfolio_data = PortfolioData(tickers, start, end)
+		self.portfolio_data = PortfolioData(tickers, self.start_date, self.end_date)
 		self.bounds_max = 1 # default upper bound
 		self.current_portfolio = Portfolio.max_sharpe_portfolio(self.portfolio_data, (0, self.bounds_max))
 
@@ -110,7 +111,7 @@ class PortfolioWindow(QWidget):
 		self.slider.setRange(0, 100)
 		self.slider.setValue(self.bounds_max*100)
 		self.slider.setFixedHeight(30)
-		self.slider_text = QLineEdit(f"{self.bounds_max:.2f}")
+		self.slider_text = QLineEdit()
 		self.slider_text.setMaximumWidth(60)
 		self.slider_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.slider_text.editingFinished.connect(self.slider_text_changed)
@@ -181,8 +182,8 @@ class PortfolioWindow(QWidget):
 		self.start_date_edit.clearFocus() # I don"t know why, but you start focused here
 
 	def update_all(self, include_frontier=True):
-		font = self.tangency_cb.font(); font.setBold(False); self.tangency_cb.setFont(font)
-		font = self.gmv_cb.font(); font.setBold(False); self.gmv_cb.setFont(font)
+		self.set_bold_cb(self.tangency_cb, False)
+		self.set_bold_cb(self.gmv_cb, False)
 		self.update_weights()
 		self.update_stats()
 		self.update_pie_chart()
@@ -306,7 +307,7 @@ class PortfolioWindow(QWidget):
 	def slider_changed(self, value):
 		self.bounds_max = value/100
 		self.slider_text.blockSignals(True)
-		self.slider_text.setText(f"{self.bounds_max:.2f}")
+		self.slider_text.setText(f"{value:.0f}%")
 		self.slider_text.blockSignals(False)
 
 	def slider_text_changed(self):

@@ -1,5 +1,4 @@
 from functools import lru_cache
-from fredapi import Fred
 import pandas as pd
 import yfinance as yf
 from typing import Tuple
