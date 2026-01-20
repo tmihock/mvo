@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
-from typing import Tuple, 
+from typing import Tuple
 from PortfolioData import PortfolioData
 
 default_bounds = (0, 1)

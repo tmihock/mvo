@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QCheckBox,
     QLabel, QListWidget, QSlider, QGroupBox, QListWidgetItem,
-	QDateEdit, QFormLayout, QPushButton, QLineEdit, QSpinBox
+	QDateEdit, QFormLayout, QPushButton, QLineEdit, QSpinBox, QFileDialog
 )
 from Portfolio import Portfolio
 from PortfolioData import PortfolioData
@@ -10,6 +10,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from plot import plot_pie_chart, plot_efficient_frontier, small_threshold
 from datetime import datetime, timedelta
+import csv
 
 class PortfolioWindow(QWidget):
 	def __init__(self, tickers):
@@ -132,6 +133,12 @@ class PortfolioWindow(QWidget):
 		# Weights list
 		self.weight_list = QListWidget()
 		weight_layout.addWidget(self.weight_list)
+
+		# --- Export button at the bottom ---
+		self.export_button = QPushButton("Export to CSV")
+		self.export_button.setMinimumHeight(40)
+		self.export_button.clicked.connect(self.export_weights)  # Call the function
+		weight_layout.addWidget(self.export_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
 		# Stats layout BELOW the list
 		stats_layout = QFormLayout()
@@ -264,6 +271,23 @@ class PortfolioWindow(QWidget):
 				ax.frontier_returns[nearest_idx]
 			)
 
+	def export_weights(self, checked):
+		# Keys are tickers, values are weights
+		file_path, _ = QFileDialog.getSaveFileName(self, "Save Portfolio Weights to CSV", "", "CSV Files (*.csv);;All Files (*)")
+		if not file_path:
+			return  # User cancelled the dialog
+
+		if not file_path.lower().endswith(".csv"):
+			file_path += ".csv"
+
+		with open(file_path, mode="w", newline="") as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerow(["ticker", "weight"])
+			for ticker, weight in zip(self.tickers, self.current_portfolio.weights):
+				# Skip very small weights
+				if weight < small_threshold:
+					continue
+				writer.writerow([ticker, f"{weight:.6f}"])
 
 	def on_frontier_press(self, event):
 		if event.inaxes is None:
