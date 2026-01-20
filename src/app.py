@@ -282,12 +282,10 @@ class PortfolioWindow(QWidget):
 
 		with open(file_path, mode="w", newline="") as csv_file:
 			writer = csv.writer(csv_file)
-			writer.writerow(["ticker", "weight"])
+			writer.writerow(["ticker", "weight"]) # Header
 			for ticker, weight in zip(self.tickers, self.current_portfolio.weights):
-				# Skip very small weights
-				if weight < small_threshold:
-					continue
-				writer.writerow([ticker, f"{weight:.6f}"])
+				if weight > small_threshold: # Only include weights not near 0 (floating point error)
+					writer.writerow([ticker, f"{weight:.6f}"])
 
 	def on_frontier_press(self, event):
 		if event.inaxes is None:
