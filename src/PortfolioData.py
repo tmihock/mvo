@@ -15,6 +15,7 @@ class PortfolioData():
 	@cached_property
 	def prices(self) -> pd.DataFrame:
 		return fetch_data(self.tickers, self.start, self.end)
+	
 
 	@cached_property
 	def log_returns(self) -> pd.DataFrame:

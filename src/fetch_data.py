@@ -17,7 +17,10 @@ def fetch_data(tickers: Tuple[str], start: str, end: str) -> pd.DataFrame:
         pd.DataFrame: DataFrame of adjusted close prices (columns = tickers)
     """
 	prices = pd.DataFrame()
+
 	for ticker in tickers:
 		data = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
+
 		prices[ticker] = data["Adj Close"]
+
 	return prices
