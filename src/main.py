@@ -6,7 +6,7 @@ from app import PortfolioWindow
 from PyQt6.QtWidgets import QApplication
 from parse_csv import parse_tickers
 
-file_path = "example.csv"
+file_path = sys.argv[1] if len(sys.argv) > 1 else "tickers.csv"
 
 def main():
 	tickers = parse_tickers(file_path)
