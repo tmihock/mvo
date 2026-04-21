@@ -1,6 +1,6 @@
 # Mean-Variance Portfolio Optimization
 
-A powerful Python application for portfolio optimization, implementing Mean-Variance Optimization (MVO) with a PyQt6 interface. Quickly find the optimal asset allocation based on historical market data.
+A Python application implementing Mean-Variance Optimization with a PyQt6 interface. Find the optimal static asset allocation based on historical market data.
 
 ## Key Features
 
